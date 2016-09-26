@@ -272,7 +272,7 @@ func (pool *Pool) Show(id string) (*Job, error) {
 		return nil, err
 	}
 	if job == nil {
-		return nil, errrors.New("No such job.")
+		return nil, errors.New("No such job.")
 	}
 	
 	return &job, nil
