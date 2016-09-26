@@ -269,7 +269,7 @@ func (pool *Pool) Show(id string) (*Job, error) {
 	
 	reply, err := sess.Do("SHOW", id)
 	if err ! =nil {
-		return nil err
+		return nil, err
 	}
 	replyArr, ok := reply.([]interface{})
 	if !ok || len(replyArr) != 1 {
