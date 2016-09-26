@@ -272,42 +272,41 @@ func (pool *Pool) Show(id string) (*Job, error) {
 		return nil, err
 	}
 	replyArr, ok := reply.([]interface{})
-	if !ok || len(replyArr) != 1 {
+	if !ok || len(replyArr) != 30 {
 		return nil, errors.New("unexpected reply #1")
 	}
-	arr, ok := replyArr[0].([]interface{})
-	if !ok || len(arr) != 7 {
-		return nil, errors.New("unexpected reply #2")
-	}
+	//	arr, ok := replyArr[0].([]interface{})
+	//	if !ok || len(arr) != 7 {
+	//		return nil, errors.New("unexpected reply #2")
+	//	}
 
 	job := Job{}
 
-	if bytes, ok := arr[0].([]byte); ok {
+	if bytes, ok := replyArr[3].([]byte); ok {
 		job.Queue = string(bytes)
 	} else {
 		return nil, errors.New("unexpected reply: queue")
 	}
 
-	if bytes, ok := arr[1].([]byte); ok {
+	if bytes, ok := replyArr[1].([]byte); ok {
 		job.ID = string(bytes)
 	} else {
 		return nil, errors.New("unexpected reply: id")
 	}
 
-	if bytes, ok := arr[2].([]byte); ok {
+	if bytes, ok := replyArr[29].([]byte); ok {
 		job.Data = string(bytes)
 	} else {
 		return nil, errors.New("unexpected reply: data")
 	}
 
-	if job.Nacks, ok = arr[4].(int64); !ok {
+	if job.Nacks, ok = replyArr[17].(int64); !ok {
 		return nil, errors.New("unexpected reply: nacks")
 	}
 
-	if job.AdditionalDeliveries, ok = arr[6].(int64); !ok {
+	if job.AdditionalDeliveries, ok = replyArr[19].(int64); !ok {
 		return nil, errors.New("unexpected reply: additional-deliveries")
 	}
-	
 	return &job, nil
 }
 
