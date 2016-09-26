@@ -158,20 +158,29 @@ func (pool *Pool) Add(data string, queue string) (*Job, error) {
 
 // Get returns first available job from a highest priority
 // queue possible (left-to-right priority).
-func (pool *Pool) Get(queues ...string) (*Job, error) {
+func (pool *Pool) Get(queues ...interface{}) (*Job, error) {
 	if len(queues) == 0 {
 		return nil, errors.New("expected at least one queue")
 	}
 
-	args := []interface{}{
-		"GETJOB",
+	args := []interface{}{"GETJOB"}
+	switch v := queues[0].(type) {
+	case bool:
+		if v {
+			args = append(args, "NOHANG")
+		}
+	}
+	tmp := []interface{}{
 		"TIMEOUT",
 		int(pool.conf.Timeout.Nanoseconds() / 1000000),
 		"WITHCOUNTERS",
 		"FROM",
 	}
-	for _, arg := range queues {
+	for _, arg := range tmp {
 		args = append(args, arg)
+	}
+	for _, arg := range queues[1:] {
+		args = append(args, arg.(string))
 	}
 
 	reply, err := pool.do(args)
