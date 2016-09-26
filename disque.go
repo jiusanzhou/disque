@@ -268,7 +268,7 @@ func (pool *Pool) Show(id string) (*Job, error) {
 	defer sess.Close()
 	
 	reply, err := sess.Do("SHOW", id)
-	if err ! =nil {
+	if err != nil {
 		return nil, err
 	}
 	replyArr, ok := reply.([]interface{})
