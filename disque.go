@@ -262,6 +262,22 @@ func (pool *Pool) Wait(job *Job) error {
 	return nil
 }
 
+// Get job by id
+func (pool *Pool) Show(id string) (*Job, error) {
+	sess := pool.redis.Get()
+	defer sess.Close()
+	
+	job, err := sess.Do("SHOW", id)
+	if err != nil {
+		return nil, err
+	}
+	if job == nil {
+		return nil, errrors.New("No such job.")
+	}
+	
+	return &job, nil
+}
+
 // Len returns length of a given queue.
 func (pool *Pool) Len(queue string) (int, error) {
 	sess := pool.redis.Get()
