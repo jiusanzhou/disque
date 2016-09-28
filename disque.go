@@ -316,7 +316,6 @@ func (pool *Pool) Show(id string) (*Job, error) {
 	if job.AdditionalDeliveries, ok = replyArr[19].(int64); !ok {
 		return nil, errors.New("unexpected reply: additional-deliveries")
 	}
-
 	return &job, nil
 }
 
