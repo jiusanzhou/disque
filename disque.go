@@ -350,7 +350,8 @@ func (pool *Pool) Qscan() ([]string, error) {
 	}
 	var queue_names []string
 	for _, i := range queues {
-		queue_names = append(queue_names, i.(string))
+		fmt.Println(i)
+		queue_names = append(queue_names, string(i.([]byte)))
 	}
 	return queue_names, nil
 }
