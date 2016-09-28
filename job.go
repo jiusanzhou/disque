@@ -8,3 +8,8 @@ type Job struct {
 	Nacks                int64
 	AdditionalDeliveries int64
 }
+
+type Queue struct {
+	Name string
+	Len  int64
+}

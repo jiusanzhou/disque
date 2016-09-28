@@ -158,20 +158,29 @@ func (pool *Pool) Add(data string, queue string) (*Job, error) {
 
 // Get returns first available job from a highest priority
 // queue possible (left-to-right priority).
-func (pool *Pool) Get(queues ...string) (*Job, error) {
+func (pool *Pool) Get(queues ...interface{}) (*Job, error) {
 	if len(queues) == 0 {
 		return nil, errors.New("expected at least one queue")
 	}
 
-	args := []interface{}{
-		"GETJOB",
+	args := []interface{}{"GETJOB"}
+	switch v := queues[0].(type) {
+	case bool:
+		if v {
+			args = append(args, "NOHANG")
+		}
+	}
+	tmp := []interface{}{
 		"TIMEOUT",
 		int(pool.conf.Timeout.Nanoseconds() / 1000000),
 		"WITHCOUNTERS",
 		"FROM",
 	}
-	for _, arg := range queues {
+	for _, arg := range tmp {
 		args = append(args, arg)
+	}
+	for _, arg := range queues[1:] {
+		args = append(args, arg.(string))
 	}
 
 	reply, err := pool.do(args)
@@ -266,48 +275,48 @@ func (pool *Pool) Wait(job *Job) error {
 func (pool *Pool) Show(id string) (*Job, error) {
 	sess := pool.redis.Get()
 	defer sess.Close()
-	
+
 	reply, err := sess.Do("SHOW", id)
 	if err != nil {
 		return nil, err
 	}
 	replyArr, ok := reply.([]interface{})
-	if !ok || len(replyArr) != 1 {
+	if !ok || len(replyArr) != 30 {
 		return nil, errors.New("unexpected reply #1")
 	}
-	arr, ok := replyArr[0].([]interface{})
-	if !ok || len(arr) != 7 {
-		return nil, errors.New("unexpected reply #2")
-	}
+	//	arr, ok := replyArr[0].([]interface{})
+	//	if !ok || len(arr) != 7 {
+	//		return nil, errors.New("unexpected reply #2")
+	//	}
 
 	job := Job{}
 
-	if bytes, ok := arr[0].([]byte); ok {
+	if bytes, ok := replyArr[3].([]byte); ok {
 		job.Queue = string(bytes)
 	} else {
 		return nil, errors.New("unexpected reply: queue")
 	}
 
-	if bytes, ok := arr[1].([]byte); ok {
+	if bytes, ok := replyArr[1].([]byte); ok {
 		job.ID = string(bytes)
 	} else {
 		return nil, errors.New("unexpected reply: id")
 	}
 
-	if bytes, ok := arr[2].([]byte); ok {
+	if bytes, ok := replyArr[29].([]byte); ok {
 		job.Data = string(bytes)
 	} else {
 		return nil, errors.New("unexpected reply: data")
 	}
 
-	if job.Nacks, ok = arr[4].(int64); !ok {
+	if job.Nacks, ok = replyArr[17].(int64); !ok {
 		return nil, errors.New("unexpected reply: nacks")
 	}
 
-	if job.AdditionalDeliveries, ok = arr[6].(int64); !ok {
+	if job.AdditionalDeliveries, ok = replyArr[19].(int64); !ok {
 		return nil, errors.New("unexpected reply: additional-deliveries")
 	}
-	
+
 	return &job, nil
 }
 
@@ -322,6 +331,49 @@ func (pool *Pool) Len(queue string) (int, error) {
 	}
 
 	return length, nil
+}
+
+// Get *all* queues name
+func (pool *Pool) Qscan() ([]string, error) {
+	sess := pool.redis.Get()
+	defer sess.Close()
+	reply, err := sess.Do("QSCAN")
+	if err != nil {
+		return []string{}, err
+	}
+	replyArr, ok := reply.([]interface{})
+	if !ok || len(replyArr) != 2 {
+		return []string{}, errors.New("unexpected reply #1")
+	}
+	queues, ok := replyArr[1].([]interface{})
+	if !ok {
+		return []string{}, errors.New("unexpected reply #2")
+	}
+	var queue_names []string
+	for _, i := range queues {
+		queue_names = append(queue_names, i.(string))
+	}
+	return queue_names, nil
+}
+
+// Get queue info
+func (pool *Pool) Qstat(queue string) (*Queue, error) {
+	sess := pool.redis.Get()
+	defer sess.Close()
+
+	reply, err := sess.Do("QSTAT", queue)
+	if err != nil {
+		return nil, err
+	}
+	replyArr, ok := reply.([]interface{})
+	if !ok || len(replyArr) != 20 {
+		return nil, errors.New("unexpected reply #1")
+	}
+	return &Queue{
+		Name: replyArr[1].(string),
+		Len:  int64(replyArr[3].(int)),
+	}, nil
+
 }
 
 // ActiveLen returns length of active jobs taken from a given queue.
