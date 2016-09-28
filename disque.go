@@ -369,8 +369,8 @@ func (pool *Pool) Qstat(queue string) (*Queue, error) {
 		return nil, errors.New("unexpected reply #1")
 	}
 	return &Queue{
-		Name: replyArr[1].(string),
-		Len:  int64(replyArr[3].(int)),
+		Name: queue, //replyArr[1].(string),
+		Len:  replyArr[3].(int64),
 	}, nil
 
 }
